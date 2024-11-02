@@ -1,0 +1,13 @@
+{
+  "mysql": {
+    "host": "",
+    "user": "",
+    "pass": "",
+    "name": ""
+  },
+  "discordBotToken": "",
+  "guildId": "",
+  "channelId": "",
+  "auditChannelId": "",
+  "startLogAfter": 1730508524
+}
