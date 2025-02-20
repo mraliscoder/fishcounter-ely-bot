@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -23,31 +24,33 @@ public class Checker extends TimerTask {
     public void run() {
         if (Main.API == null) return;
 
-        final boolean[] ok = {true};
-        AtomicInteger fishNum = new AtomicInteger();
+        int fishNum = 0;
+        ArrayList<Message> messages = new ArrayList<>();
         Main.API.getGuildById(Main.config.guildId)
                 .getTextChannelById(Main.config.channelId)
                 .getIterableHistory()
                 .stream()
-                .forEach(msg -> {
-                    if (!ok[0]) return;
-                    if (msg.getTimeCreated().isBefore(OffsetDateTime.ofInstant(Instant.ofEpochSecond(Main.config.startLogAfter), ZoneId.systemDefault())))
-                        return;
+                .forEachOrdered(messages::add);
 
-                    int fishNumCurrent = Utils.validateMessage(msg.getContentRaw());
-                    if (fishNumCurrent == -1) {
-                        alertInvalid(msg, true);
-                        ok[0] = false;
-                        return;
-                    }
-                    if (fishNum.get() == 0) {
-                        fishNum.set(fishNumCurrent);
-                    } else if (fishNumCurrent != fishNum.get() - 1) {
-                        alertInvalid(msg, false);
-                        ok[0] = false;
-                        return;
-                    }
-                });
+        for (Message msg : messages) {
+            if (msg.getTimeCreated().isBefore(OffsetDateTime.ofInstant(Instant.ofEpochSecond(Main.config.startLogAfter), ZoneId.systemDefault())))
+                return;
+
+            int fishNumCurrent = Utils.validateMessage(msg.getContentRaw());
+            if (fishNumCurrent == -1) {
+                alertInvalid(msg, true);
+                return;
+            }
+            if (fishNum == 0) {
+                fishNum = fishNumCurrent;
+            } else if (fishNumCurrent != fishNum) {
+                alertInvalid(msg, false);
+                return;
+            }
+
+            System.out.println("Fish #" + fishNum + ": " + msg.getContentRaw());
+            fishNum--;
+        }
     }
 
     private void alertInvalid(Message message, boolean format) {
